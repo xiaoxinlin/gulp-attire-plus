@@ -21,7 +21,7 @@ module.exports = function(options){
 	}
 
 	if (options.docRoot !== null) {
-		options.docRoot == '.';
+		options.docRoot = '.';
 	}
 
 	// Compile/Process Styles
