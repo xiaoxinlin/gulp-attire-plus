@@ -1,0 +1,27 @@
+{
+  "name": "gulp-attire",
+  "version": "0.0.0",
+  "description": "My kryptonian gulp plugin",
+  "license": "MIT",
+  "repository": "https://github.com/CI-Attire/gulp-attire",
+  "author": {
+    "name": "David Sosa Valdes",
+    "email": "david.sosa.valdes@gmail.com",
+    "url": "http://github.com/davidsosavaldes"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "gulp-plugin"
+  ],
+  "dependencies": {
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-sass": "^2.3.2",
+    "gulp-uglify": "^2.0.0",
+    "gulp-util": "^3.0.7",
+    "jshint": "^2.9.4",
+    "pump": "^1.0.1"
+  }
+}
