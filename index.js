@@ -1,10 +1,12 @@
 module.exports = function(options){
 
-	var gulp 	 = options.gulp;
-	var gutil  = require('gulp-util');
-	var sass 	 = require('gulp-sass');
-	var uglify = require('gulp-uglify');
-	var path 	 = require('path');
+	var gulp 	 	= options.gulp;
+	var gutil 	= require('gulp-util');
+	var sass 	 	= require('gulp-sass');
+	var uglify 	= require('gulp-uglify');
+	var path 	 	= require('path');
+	var php 	 	= require('gulp-connect-php');
+	var browser = require('browser-sync');
 
 	if (options.assetsPath !== null) {
 		options.assetsPath = 'assets/';
@@ -16,6 +18,10 @@ module.exports = function(options){
 
 	if (options.scriptsPath!== null) {
 		options.scriptsPath = 'scripts/';
+	}
+
+	if (options.docRoot !== null) {
+		options.docRoot == '.';
 	}
 
 	// Compile/Process Styles
@@ -32,29 +38,24 @@ module.exports = function(options){
 	    .pipe(gulp.dest('public/assets'));
 	});
 
-};
+	gulp.task('attire:reload', browser.reload);
 
-//
-// gulp.task('reload', browserSync.reload);
-//
-// // Watch Task
-// gulp.task('watch', function() {
-//   gulp.watch([app_path + '/**/*.+(php|twig|php.twig)'], ['reload']);
-//   gulp.watch([base_path + '/' + scripts + '/**/*.js'], ['scripts', 'reload']);
-//   gulp.watch([base_path + '/' + styles + '/**/*.+{css|scss|sass}'], ['styles', 'reload']);
-// });
-//
-// gulp.task('php-serve', ['scripts', 'styles'], function() {
-//   php.server({ base: '.', port: 8010, keepalive: true});
-// });
-//
-// gulp.task('browser-sync',['php-serve'], function() {
-//   browserSync({
-//     proxy: '127.0.0.1:8010',
-//     port: 8080,
-//     open: true,
-//     notify: true
-//   });
-// });
-//
-// gulp.task('default', ['browser-sync', 'watch']);
+	// Watch Task
+	gulp.task('attire:watch', function() {
+	  gulp.watch(options.scriptsPath + '/**/*.js', {cwd: options.assetsPath}, ['attire:scripts', 'attire:reload']);
+	  gulp.watch(options.stylesPath + '/**/*.+{css|scss|sass}', {cwd: options.assetsPath}, ['attire:styles', 'attire:reload']);
+	});
+
+	gulp.task('attire:serve', ['attire:scripts', 'attire:styles'], function() {
+	  php.server({ base: options.docRoot, port: 8010, keepalive: true});
+	});
+
+	gulp.task('attire:sync', ['attire:serve', 'attire:watch'], function() {
+	  browser({
+	    proxy: '127.0.0.1:8010',
+	    port: 8080,
+	    open: true,
+	    notify: true
+	  });
+	});
+};
