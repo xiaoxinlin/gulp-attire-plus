@@ -8,7 +8,6 @@ A set of predefined gulp tasks built for the Attire Driver.
 $ npm install --save-dev gulp-attire
 ```
 
-
 ## Usage
 
 ```js
@@ -16,7 +15,6 @@ var gulp = require('gulp');
 var attire = require('gulp-attire');
 
 attire({gulp: gulp});
-);
 ```
 
 ## API
