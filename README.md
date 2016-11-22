@@ -14,7 +14,9 @@ $ npm install --save-dev gulp-attire
 var gulp = require('gulp');
 var attire = require('gulp-attire');
 
-attire({gulp: gulp});
+gulp.src('./attire.config.js')
+  .pipe(attire())
+  .pipe(gulp.dest('./public'));
 ```
 
 ## API

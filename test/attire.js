@@ -1,14 +1,13 @@
 var assert = require('assert');
+var expect = require('chai').expect;
 var es = require('event-stream');
 var File = require('vinyl');
-var prefixer = require('../');
 var gutil = require('gulp-util');
+var attire = require('../');
 
-describe('gulp-prefixer', function() {
+describe('gulp-attire', function() {
   describe('in streaming mode', function() {
-
-    it('should prepend text', function(done) {
-
+    it('should merge assets content and outputs a config file', function(done) {
       // create the fake file
       var fakeFile = new File({
         cwd: '/',
@@ -27,32 +26,28 @@ describe('gulp-prefixer', function() {
               vendor: {
                 scripts: './test/sample/vendor/bootstrap/dist/js/bootstrap.min.js'
               },
-              output: './test/output'
+              dest: './test/output'
             }
           })
         ])
       });
-
-      // Create a prefixer plugin stream
-      var myPrefixer = prefixer();
-
+      // Create a plugin stream
+      var myAttire = attire();
       // write the fake file to it
-      myPrefixer.write(fakeFile);
-
+      myAttire.write(fakeFile);
       // wait for the file to come back out
-      myPrefixer.once('data', function(file) {
+      myAttire.once('data', function(file) {
         // make sure it came out the same way it went in
         assert(file.isStream());
         // buffer the contents to make sure it got prepended to
         file.contents.pipe(es.wait(function(err, data) {
           // check the contents
-          // gutil.log(data.toString());
-          // assert.equal(data, 'prependthisstreamwiththosecontents');
+          var data = JSON.parse(data.toString());
+          expect(data).to.have.property('main');
+          expect(data).to.have.property('vendor');
           done();
         }));
       });
-
     });
-
   });
 });

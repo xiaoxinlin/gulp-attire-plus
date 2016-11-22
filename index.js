@@ -1,61 +1,157 @@
-module.exports = function(options){
+var async = require('async');
+var through = require('through2');
+var gutil = require('gulp-util');
+var crypto = require('crypto');
+var path = require('path');
+var glob = require("glob");
+var fs = require('fs');
 
-	var gulp 	 	= options.gulp;
-	var gutil 	= require('gulp-util');
-	var sass 	 	= require('gulp-sass');
-	var uglify 	= require('gulp-uglify');
-	var path 	 	= require('path');
-	var php 	 	= require('gulp-connect-php');
-	var browser = require('browser-sync');
+Date.prototype.withoutTime = function () {
+    var d = new Date(this);
+    d.setHours(0,0,0,0);
+    return d
+}
 
-	if (options.assetsPath !== null) {
-		options.assetsPath = 'assets/';
-	}
+var PluginError = gutil.PluginError;
 
-	if (options.stylesPath !== null) {
-		options.stylesPath = 'styles/';
-	}
+// consts
+const PLUGIN_NAME = 'gulp-attire';
+const ALGORITHM = 'aes128';
+const HASH = 'd6F3Efeq';
+const TIMESTAMP = new Date().getTime().toString();
 
-	if (options.scriptsPath!== null) {
-		options.scriptsPath = 'scripts/';
-	}
+function encrypt(text){
+  var cipher = crypto.createCipher(ALGORITHM, HASH)
+  var crypted = cipher.update(text,'utf8','hex')
+  crypted += cipher.final('hex');
+  return crypted;
+}
 
-	if (options.docRoot !== null) {
-		options.docRoot = '.';
-	}
+function decrypt(text){
+  var decipher = crypto.createDecipher(ALGORITHM, HASH)
+  var dec = decipher.update(text,'hex','utf8')
+  dec += decipher.final('utf8');
+  return dec;
+}
 
-	// Compile/Process Styles
-	gulp.task('attire:styles', function() {
-	  gulp.src(options.stylesPath + '/**/*.+{css|scss|sass}', {cwd: options.assetsPath})
-	    .pipe(sass())
-	    .pipe(gulp.dest('public/assets'));
-	});
+function mergeFilesContent(files){
+  output = '';
+  async.each(files, function(file){
+    var content = fs.readFileSync(file, 'utf8');
+    output += content + '\n';
+  }, function(err){
+    // if any of the saves produced an error, err would equal that error
+  });
+  return output;
+}
 
-	// Minify Scripts
-	gulp.task('attire:scripts', function() {
-	  options.gulp.src(options.scriptsPath + '/**/*.js', {cwd: options.assetsPath})
-	    .pipe(uglify())
-	    .pipe(gulp.dest('public/assets'));
-	});
+function createOutput(assets) {
+  return new Promise(function(resolve, reject) {
+    if (typeof assets == 'string') {
+      glob(assets, {}, function (err, files) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(mergeFilesContent(files));
+        }
+      });
+    }
+    else if (assets instanceof Array) {
+      resolve(mergeFilesContent(assets));
+    }
+    else {
+      resolve('');
+    }
+  });
+}
 
-	gulp.task('attire:reload', browser.reload);
+function parseStream(filePath) {
+  var stream = through({objectMode:true}, function(chunk, enc, callback){
+    var self    = this;
+    var string  = chunk.toString()
+    var config  = JSON.parse(string);
+    var crypted = encrypt(TIMESTAMP);
 
-	// Watch Task
-	gulp.task('attire:watch', function() {
-	  gulp.watch(options.scriptsPath + '/**/*.js', {cwd: options.assetsPath}, ['attire:scripts', 'attire:reload']);
-	  gulp.watch(options.stylesPath + '/**/*.+{css|scss|sass}', {cwd: options.assetsPath}, ['attire:styles', 'attire:reload']);
-	});
+    var generator = function(config) {
+      return new Promise(function(resolve, reject) {
+        if (typeof config.src !== 'undefined') {
+          fs.access(config.output, fs.F_OK, function(err) {
+            if (! err) {
+              createOutput(config.src.styles).then(function(data) {
+                var assetFile = config.name + '-' + crypted + '.css';
+                var assets = path.resolve(config.output, assetFile);
+                // TODO: minify data?
+                fs.writeFile(assets, data, 'utf8', function() {
+                  createOutput(config.src.scripts).then(function(data) {
+                    var scriptFile =  config.name + '-' + crypted +'.js';
+                    var scripts = path.resolve(config.output, scriptFile);
+                    // TODO: uglify data?
+                    fs.writeFile(scripts, data, 'utf8', function() {
+                      var parsed = {};
+                      parsed[config.name] = {
+                        scripts: path.normalize(config.output + '/' + scriptFile),
+                        assets: path.normalize(config.output + '/' + assetFile)
+                      };
+                      resolve(parsed);
+                    });
+                  });
+                });
+              });
+            } else {
+              // Output path isn't accessible
+              resolve();
+            }
+          });
+        } else {
+          // Src not defined
+          resolve();
+        }
+      });
+    };
 
-	gulp.task('attire:serve', ['attire:scripts', 'attire:styles'], function() {
-	  php.server({ base: options.docRoot, port: 8010, keepalive: true});
-	});
+    var output = config.attire.dest;
+    var main = {name: 'main', src: config.attire.main, output};
+    var vendor = {name: 'vendor', src: config.attire.vendor, output};
 
-	gulp.task('attire:sync', ['attire:serve', 'attire:watch'], function() {
-	  browser({
-	    proxy: '127.0.0.1:8010',
-	    port: 8080,
-	    open: true,
-	    notify: true
-	  });
-	});
-};
+    generator(main).then(function(data){
+      var report = data;
+      generator(vendor).then(function(data){
+        report = Object.assign(report, data);
+        self.push(JSON.stringify(report));
+        callback();
+      })
+    });
+  });
+  // stream.write('');
+  return stream;
+}
+
+// plugin level function (dealing with files)
+function gulpAttire() {
+  // creating a stream through which each file will pass
+  var stream = through.obj(function(file, enc, callback) {
+    if (file.isBuffer()) {
+      this.emit('error', new PluginError(PLUGIN_NAME, 'Buffers not supported!'));
+      return cb();
+    }
+
+    if (file.isStream()) {
+      // define the streamer that will transform the content
+      var streamer = parseStream(file.path);
+      // catch errors from the streamer and emit a gulp plugin error
+      streamer.on('error', this.emit.bind(this, 'error'));
+      // start the transformation
+      file.contents = file.contents.pipe(streamer);
+    }
+    // make sure the file goes through the next gulp plugin
+    this.push(file);
+    // tell the stream engine that we are done with this file
+    callback();
+  });
+
+  // returning the file stream
+  return stream;
+}
+
+// exporting the plugin main function
+module.exports = gulpAttire;

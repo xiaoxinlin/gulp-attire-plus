@@ -1,7 +1,7 @@
 {
   "name": "gulp-attire",
-  "version": "0.0.0",
-  "description": "A set of predefined gulp tasks built for the Attire Driver",
+  "version": "0.1.0",
+  "description": "An asset versioning pre-compiler for the Attire Driver",
   "license": "MIT",
   "repository": "https://github.com/CI-Attire/gulp-attire",
   "author": {
@@ -16,14 +16,15 @@
     "gulp-plugin"
   ],
   "devDependencies": {
-    "gulp-connect-php": "0.0.8",
-    "browser-sync": "^2.18.1",
-    "gulp": "^3.9.1",
-    "gulp-concat": "^2.6.1",
-    "gulp-sass": "^2.3.2",
-    "gulp-uglify": "^2.0.0",
+    "chai": "^3.5.0",
+    "event-stream": "^3.3.4",
     "gulp-util": "^3.0.7",
     "jshint": "^2.9.4",
-    "pump": "^1.0.1"
+    "mocha": "^3.1.2",
+    "through2": "^2.0.1"
+  },
+  "dependencies": {
+    "async": "^2.1.2",
+    "glob": "^7.1.1"
   }
 }
