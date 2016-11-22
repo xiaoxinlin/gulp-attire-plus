@@ -19,18 +19,6 @@ gulp.src('./attire.config.js')
   .pipe(gulp.dest('./public'));
 ```
 
-## API
-
-### attire([options])
-
-#### options
-
-##### gulp
-
-Type: `object`<br>
-
-Gulp instance.
-
 ## License
 
 MIT © [David Sosa Valdes](https://github.com/davidsosavaldes)
