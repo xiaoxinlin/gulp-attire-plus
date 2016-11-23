@@ -14,9 +14,11 @@ $ npm install --save-dev gulp-attire
 var gulp = require('gulp');
 var attire = require('gulp-attire');
 
-gulp.src('./attire.config.js')
+gulp.task('attire',function(){
+  gulp.src('./attire.config.json', { buffer: false })
   .pipe(attire())
-  .pipe(gulp.dest('./public'));
+  .pipe(gulp.dest('./public')); // path to store the output file
+});
 ```
 
 ## API
