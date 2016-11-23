@@ -21,18 +21,6 @@ gulp.task('attire',function(){
 });
 ```
 
-## API
-
-### attire([options])
-
-#### options
-
-##### gulp
-
-Type: `object`<br>
-
-Gulp instance.
-
 ## License
 
 MIT © [David Sosa Valdes](https://github.com/davidsosavaldes)
