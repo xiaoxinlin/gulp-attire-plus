@@ -114,11 +114,15 @@ function parseStream(filePath) {
     var vendor = {name: 'vendor', src: config.attire.vendor, output};
 
     generator(main).then(function(data){
-      var report = data;
+      var report = typeof report !== 'undefined' ? data : {};
       generator(vendor).then(function(data){
-        report = Object.assign(report, data);
+        if (typeof data !== 'undefined') {
+          report = Object.assign(report, data);
+        }
         self.push(JSON.stringify(report));
         callback();
+      }).catch(function(error){
+        gutil.log(error);
       })
     });
   });
@@ -140,6 +144,8 @@ function gulpAttire() {
       var streamer = parseStream(file.path);
       // catch errors from the streamer and emit a gulp plugin error
       streamer.on('error', this.emit.bind(this, 'error'));
+      var filePath = path.parse(file.path);
+      file.path = path.resolve(filePath.dir, 'attire.assets' + filePath.ext);
       // start the transformation
       file.contents = file.contents.pipe(streamer);
     }
