@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "async": "^2.1.2",
+    "fs-path": "0.0.22",
     "glob": "^7.1.1"
   }
 }

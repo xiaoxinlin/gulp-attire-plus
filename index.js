@@ -5,6 +5,7 @@ var crypto = require('crypto');
 var path = require('path');
 var glob = require("glob");
 var fs = require('fs');
+var fsPath = require('fs-path');
 
 Date.prototype.withoutTime = function () {
     var d = new Date(this);
@@ -65,7 +66,7 @@ function createOutput(assets) {
   });
 }
 
-function parseStream(filePath) {
+function streamerParser(filePath) {
   var stream = through({objectMode:true}, function(chunk, enc, callback){
     var self    = this;
     var string  = chunk.toString()
@@ -78,20 +79,26 @@ function parseStream(filePath) {
           fs.access(config.output, fs.F_OK, function(err) {
             if (! err) {
               createOutput(config.src.styles).then(function(data) {
-                var assetFile = config.name + '-' + crypted + '.css';
-                var assets = path.resolve(config.output, assetFile);
+                var styleFile = 'styles/' + config.name + '-' + crypted + '.css';
+                var styles = path.resolve(config.output, styleFile);
                 // TODO: minify data?
-                fs.writeFile(assets, data, 'utf8', function() {
+                // gutil.log("Writing %s", styleFile);
+                fsPath.writeFile(styles, data, 'utf8', function(err) {
+                  if (err) {
+                    reject(err);
+                  }
                   createOutput(config.src.scripts).then(function(data) {
-                    var scriptFile =  config.name + '-' + crypted +'.js';
+                    var scriptFile = 'scripts/' + config.name + '-' + crypted +'.js';
                     var scripts = path.resolve(config.output, scriptFile);
                     // TODO: uglify data?
-                    fs.writeFile(scripts, data, 'utf8', function() {
+                    // gutil.log("Writing %s", scriptFile);
+                    fsPath.writeFile(scripts, data, 'utf8', function(err) {
+                      if (err) {
+                        reject(err);
+                      }
                       var parsed = {};
-                      parsed[config.name] = {
-                        scripts: path.normalize(config.output + '/' + scriptFile),
-                        assets: path.normalize(config.output + '/' + assetFile)
-                      };
+                      parsed[config.name + '.js'] = path.normalize(config.output + '/' + scriptFile);
+                      parsed[config.name + '.css']  = path.normalize(config.output + '/' + styleFile);
                       resolve(parsed);
                     });
                   });
@@ -116,14 +123,20 @@ function parseStream(filePath) {
     generator(main).then(function(data){
       var report = typeof report !== 'undefined' ? data : {};
       generator(vendor).then(function(data){
-        if (typeof data !== 'undefined') {
+        if (typeof data !== 'undefined'){
           report = Object.assign(report, data);
         }
         self.push(JSON.stringify(report));
         callback();
       }).catch(function(error){
         gutil.log(error);
+        // TODO: show current error
+        return callback();
       })
+    }).catch(function(error){
+      gutil.log(error);
+      // TODO: show current error
+      return callback();
     });
   });
   // stream.write('');
@@ -141,7 +154,7 @@ function gulpAttire() {
 
     if (file.isStream()) {
       // define the streamer that will transform the content
-      var streamer = parseStream(file.path);
+      var streamer = streamerParser(file.path);
       // catch errors from the streamer and emit a gulp plugin error
       streamer.on('error', this.emit.bind(this, 'error'));
       var filePath = path.parse(file.path);
