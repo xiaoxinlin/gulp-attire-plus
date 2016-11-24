@@ -1,6 +1,6 @@
 # gulp-attire
 
-A set of predefined gulp tasks built for the Attire Driver.
+Attire asset pre-compiler task build on gulp.
 
 ## Install
 
