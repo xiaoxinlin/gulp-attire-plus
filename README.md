@@ -1,6 +1,6 @@
 # gulp-attire
 
-Attire asset pre-compiler task build on gulp.
+Attire asset pre-compiler task build for gulp.
 
 ## Install
 
