@@ -121,7 +121,7 @@ function streamerParser(filePath) {
     var vendor = {name: 'vendor', src: config.attire.vendor, output};
 
     generator(main).then(function(data){
-      var report = typeof report !== 'undefined' ? data : {};
+      var report = typeof data !== 'undefined' ? data : {};
       generator(vendor).then(function(data){
         if (typeof data !== 'undefined'){
           report = Object.assign(report, data);
