@@ -43,8 +43,8 @@ describe('gulp-attire', function() {
         file.contents.pipe(es.wait(function(err, data) {
           // check the contents
           var data = JSON.parse(data.toString());
-          expect(data).to.have.property('main');
-          expect(data).to.have.property('vendor');
+          expect(data).to.have.property('main.css');
+          expect(data).to.have.property('vendor.css');
           done();
         }));
       });

@@ -71,7 +71,7 @@ function streamerParser(filePath) {
     var self    = this;
     var string  = chunk.toString()
     var config  = JSON.parse(string);
-    var crypted = encrypt(TIMESTAMP);
+    var crypted = encrypt(TIMESTAMP).substring(0,8);
 
     var generator = function(config) {
       return new Promise(function(resolve, reject) {
@@ -82,7 +82,6 @@ function streamerParser(filePath) {
                 var styleFile = 'styles/' + config.name + '-' + crypted + '.css';
                 var styles = path.resolve(config.output, styleFile);
                 // TODO: minify data?
-                // gutil.log("Writing %s", styleFile);
                 fsPath.writeFile(styles, data, 'utf8', function(err) {
                   if (err) {
                     reject(err);
@@ -91,7 +90,6 @@ function streamerParser(filePath) {
                     var scriptFile = 'scripts/' + config.name + '-' + crypted +'.js';
                     var scripts = path.resolve(config.output, scriptFile);
                     // TODO: uglify data?
-                    // gutil.log("Writing %s", scriptFile);
                     fsPath.writeFile(scripts, data, 'utf8', function(err) {
                       if (err) {
                         reject(err);
