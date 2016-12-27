@@ -10,29 +10,30 @@ describe('gulp-attire', function() {
     it('should merge assets content and outputs a config file', function(done) {
       // create the fake file
       var fakeFile = new File({
-        cwd: '/',
-        base: '/test/',
-        path: '/test/file.js',
+        cwd: 'test',
+        base: 'sample',
+        path: 'file.js',
         contents: es.readArray([
           JSON.stringify({
-            attire: {
-              main: {
-                scripts: [
-                  './test/sample/scripts/foo.js',
-                  './test/sample/scripts/bar.js'
-                ],
-                styles: './test/sample/styles/**/*.css'
-              },
-              vendor: {
-                scripts: './test/sample/vendor/bootstrap/dist/js/bootstrap.min.js'
-              },
-              dest: './test/output'
+            main: {
+              scripts: [
+                'assets/scripts/foo.js',
+                'assets/scripts/bar.js'
+              ],
+              styles: 'assets/styles/**/*.css'
+            },
+            vendor: {
+              scripts: 'assets/vendor/bootstrap/dist/js/bootstrap.min.js'
             }
           })
         ])
       });
+      var config = {
+        output: 'output',
+        debug: false
+      }
       // Create a plugin stream
-      var myAttire = attire();
+      var myAttire = attire(config);
       // write the fake file to it
       myAttire.write(fakeFile);
       // wait for the file to come back out

@@ -35,10 +35,11 @@ function decrypt(text){
   return dec;
 }
 
-function mergeFilesContent(files){
+function mergeFilesContent(files, cwd){
   output = '';
   async.each(files, function(file){
-    var content = fs.readFileSync(file, 'utf8');
+    var _file = path.resolve(cwd, file);
+    var content = fs.readFileSync(_file, 'utf8');
     output += content + '\n';
   }, function(err){
     // if any of the saves produced an error, err would equal that error
@@ -46,19 +47,19 @@ function mergeFilesContent(files){
   return output;
 }
 
-function createOutput(assets) {
+function createOutput(assets, cwd) {
   return new Promise(function(resolve, reject) {
     if (typeof assets == 'string') {
-      glob(assets, {}, function (err, files) {
+      glob(path.resolve(cwd, assets), {}, function (err, files) {
         if (err) {
           reject(err);
         } else {
-          resolve(mergeFilesContent(files));
+          resolve(mergeFilesContent(files, ''));
         }
       });
     }
     else if (assets instanceof Array) {
-      resolve(mergeFilesContent(assets));
+      resolve(mergeFilesContent(assets, cwd));
     }
     else {
       resolve('');
@@ -66,61 +67,52 @@ function createOutput(assets) {
   });
 }
 
-function streamerParser(filePath) {
+function generator(file, name, source, config) {
+  var crypted = encrypt(TIMESTAMP).substring(0,8);
+  return new Promise(function(resolve, reject) {
+    if (typeof source !== 'undefined') {
+      var parsed = {};
+      createOutput(source.styles, path.resolve(file.cwd, file.base)).then(function(data) {
+        var styleFile = 'styles/' + name + '-' + crypted + '.css';
+        var styles = path.resolve(file.cwd, styleFile);
+        parsed[name + '.css']  = path.normalize(file.cwd + '/' + styleFile);
+        // TODO: minify data?
+        if (! config.debug) {
+          fsPath.writeFile(styles, data, 'utf8', function(err) {
+            if (err) {
+              reject(err);
+            }
+            createOutput(source.scripts, path.resolve(file.cwd, file.base)).then(function(data) {
+              var scriptFile = 'scripts/' + name + '-' + crypted +'.js';
+              var scripts = path.resolve(file.cwd, scriptFile);
+              parsed[name + '.js'] = path.normalize(file.cwd + '/' + scriptFile);
+              // TODO: uglify data?
+              fsPath.writeFile(scripts, data, 'utf8', function(err) {
+                if (err) {
+                  reject(err);
+                }
+                resolve(parsed);
+              });
+            });
+          });
+        }
+      });
+    } else {
+      // Src not defined
+      resolve();
+    }
+  });
+};
+
+function streamerParser(file, config) {
   var stream = through({objectMode:true}, function(chunk, enc, callback){
     var self    = this;
     var string  = chunk.toString()
-    var config  = JSON.parse(string);
-    var crypted = encrypt(TIMESTAMP).substring(0,8);
+    var source  = JSON.parse(string);
 
-    var generator = function(config) {
-      return new Promise(function(resolve, reject) {
-        if (typeof config.src !== 'undefined') {
-          fs.access(config.output, fs.F_OK, function(err) {
-            if (! err) {
-              createOutput(config.src.styles).then(function(data) {
-                var styleFile = 'styles/' + config.name + '-' + crypted + '.css';
-                var styles = path.resolve(config.output, styleFile);
-                // TODO: minify data?
-                fsPath.writeFile(styles, data, 'utf8', function(err) {
-                  if (err) {
-                    reject(err);
-                  }
-                  createOutput(config.src.scripts).then(function(data) {
-                    var scriptFile = 'scripts/' + config.name + '-' + crypted +'.js';
-                    var scripts = path.resolve(config.output, scriptFile);
-                    // TODO: uglify data?
-                    fsPath.writeFile(scripts, data, 'utf8', function(err) {
-                      if (err) {
-                        reject(err);
-                      }
-                      var parsed = {};
-                      parsed[config.name + '.js'] = path.normalize(config.output + '/' + scriptFile);
-                      parsed[config.name + '.css']  = path.normalize(config.output + '/' + styleFile);
-                      resolve(parsed);
-                    });
-                  });
-                });
-              });
-            } else {
-              // Output path isn't accessible
-              resolve();
-            }
-          });
-        } else {
-          // Src not defined
-          resolve();
-        }
-      });
-    };
-
-    var output = config.attire.dest;
-    var main = {name: 'main', src: config.attire.main, output};
-    var vendor = {name: 'vendor', src: config.attire.vendor, output};
-
-    generator(main).then(function(data){
+    generator(file, 'main', source.main, config).then(function(data){
       var report = typeof data !== 'undefined' ? data : {};
-      generator(vendor).then(function(data){
+      generator(file, 'vendor', source.vendor, config).then(function(data){
         if (typeof data !== 'undefined'){
           report = Object.assign(report, data);
         }
@@ -142,7 +134,7 @@ function streamerParser(filePath) {
 }
 
 // plugin level function (dealing with files)
-function gulpAttire() {
+function gulpAttire(config={}) {
   // creating a stream through which each file will pass
   var stream = through.obj(function(file, enc, callback) {
     if (file.isBuffer()) {
@@ -152,7 +144,7 @@ function gulpAttire() {
 
     if (file.isStream()) {
       // define the streamer that will transform the content
-      var streamer = streamerParser(file.path);
+      var streamer = streamerParser(file, config);
       // catch errors from the streamer and emit a gulp plugin error
       streamer.on('error', this.emit.bind(this, 'error'));
       var filePath = path.parse(file.path);
