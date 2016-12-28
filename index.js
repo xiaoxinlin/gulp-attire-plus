@@ -98,7 +98,7 @@ function streamerParser(file, assetDir, config) {
       if (err) {
         self.emit('error', new PluginError(PLUGIN_NAME, err));
       }
-      self.push(JSON.stringify(parsed));
+      self.push(JSON.stringify(parsed, null, 2));
       callback();
     });
   });
