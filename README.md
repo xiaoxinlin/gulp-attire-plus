@@ -33,7 +33,7 @@ var gulp = require('gulp');
 var attire = require('gulp-attire');
 
 gulp.task('attire',function(){
-  gulp.src('theme/foo/config.json')
+  gulp.src('theme/foo/config.json', { buffer: false })
     .pipe(attire())
     .pipe(gulp.dest('public')); // path to store the manifest file
 });
