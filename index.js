@@ -3,7 +3,7 @@ var through = require('through2');
 var gutil = require('gulp-util');
 var crypto = require('crypto');
 var path = require('path');
-var glob = require("glob");
+var glob = require('glob');
 var fs = require('fs');
 var fsPath = require('fs-path');
 
@@ -35,14 +35,15 @@ function decrypt(text){
   return dec;
 }
 
-function mergeFilesContent(files, cwd){
+function mergeFilesContent(files, cwd=null){
   output = '';
   async.each(files, function(file){
-    var _file = path.resolve(cwd, file);
-    var content = fs.readFileSync(_file, 'utf8');
+    var content = fs.readFileSync(path.resolve(cwd, file), 'utf8');
     output += content + '\n';
   }, function(err){
-    // if any of the saves produced an error, err would equal that error
+    if (err) {
+      throw err;
+    }
   });
   return output;
 }
@@ -54,7 +55,7 @@ function createOutput(assets, cwd) {
         if (err) {
           reject(err);
         } else {
-          resolve(mergeFilesContent(files, ''));
+          resolve(mergeFilesContent(files));
         }
       });
     }
@@ -62,71 +63,52 @@ function createOutput(assets, cwd) {
       resolve(mergeFilesContent(assets, cwd));
     }
     else {
-      resolve('');
+      reject('createOutput: No type allowed');
     }
   });
 }
 
-function generator(file, name, source, config) {
-  var crypted = encrypt(TIMESTAMP).substring(0,8);
-  return new Promise(function(resolve, reject) {
-    if (typeof source !== 'undefined') {
-      var parsed = {};
-      createOutput(source.styles, path.resolve(file.cwd, file.base)).then(function(data) {
-        var styleFile = 'styles/' + name + '-' + crypted + '.css';
-        var styles = path.resolve(file.cwd, styleFile);
-        parsed[name + '.css']  = path.normalize(file.cwd + '/' + styleFile);
-        // TODO: minify data?
-        if (! config.debug) {
-          fsPath.writeFile(styles, data, 'utf8', function(err) {
-            if (err) {
-              reject(err);
-            }
-            createOutput(source.scripts, path.resolve(file.cwd, file.base)).then(function(data) {
-              var scriptFile = 'scripts/' + name + '-' + crypted +'.js';
-              var scripts = path.resolve(file.cwd, scriptFile);
-              parsed[name + '.js'] = path.normalize(file.cwd + '/' + scriptFile);
-              // TODO: uglify data?
-              fsPath.writeFile(scripts, data, 'utf8', function(err) {
-                if (err) {
-                  reject(err);
-                }
-                resolve(parsed);
-              });
-            });
-          });
-        }
-      });
-    } else {
-      // Src not defined
-      resolve();
-    }
-  });
-};
-
 function streamerParser(file, config) {
   var stream = through({objectMode:true}, function(chunk, enc, callback){
-    var self    = this;
-    var string  = chunk.toString()
-    var source  = JSON.parse(string);
+    var self   = this;
+    var string = chunk.toString()
+    var tree   = JSON.parse(string);
+    var hash   = encrypt(TIMESTAMP).substring(0,8);
 
-    generator(file, 'main', source.main, config).then(function(data){
-      var report = typeof data !== 'undefined' ? data : {};
-      generator(file, 'vendor', source.vendor, config).then(function(data){
-        if (typeof data !== 'undefined'){
-          report = Object.assign(report, data);
+    var assetDir;
+
+    if (file.base !== file.cwd) {
+      assetDir = path.resolve(file.cwd, file.base);
+    } else {
+      assetDir = path.resolve(file.cwd)
+    }
+
+    var parsed = {};
+
+    async.forEachOf(tree, function(files, assetFileName, cb){
+      createOutput(files, assetDir).then(function(data){
+        var assetFile = path.parse(assetFileName);
+        var outputName = assetFile.name + '-' + hash + assetFile.ext;
+        var outputDir = (config.output)? config.output : 'public';
+        parsed[assetFileName] = path.normalize(outputDir + '/' + assetFile.ext.replace('.', '') + '/' + outputName);
+        if (! config.debug) {
+          fsPath.writeFile(parsed[assetFileName], data, 'utf8', function(err) {
+            if (err) {
+              gutil.log(err)
+              self.emit('error', new PluginError(PLUGIN_NAME, err));
+            }
+            cb();
+          });
+        } else {
+          cb();
         }
-        self.push(JSON.stringify(report));
-        callback();
-      }).catch(function(error){
-        gutil.log(error);
-        // TODO: show current error
-        return callback();
-      })
-    }).catch(function(error){
-      gutil.log(error);
-      // TODO: show current error
-      return callback();
+      });
+    }, function(err){
+      if (err) {
+        self.emit('error', new PluginError(PLUGIN_NAME, err));
+      }
+      self.push(JSON.stringify(parsed));
+      callback();
     });
   });
   // stream.write('');

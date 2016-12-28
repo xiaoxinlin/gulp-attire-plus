@@ -5,35 +5,33 @@ var File = require('vinyl');
 var gutil = require('gulp-util');
 var attire = require('../');
 
+var fakeFile;
+
 describe('gulp-attire', function() {
   describe('in streaming mode', function() {
-    it('should merge assets content and outputs a config file', function(done) {
-      // create the fake file
+    it('should merge assets content and outputs a manifest file', function(done) {
       var fakeFile = new File({
         cwd: 'test',
         base: 'sample',
-        path: 'file.js',
+        path: 'file.json',
         contents: es.readArray([
           JSON.stringify({
-            main: {
-              scripts: [
-                'assets/scripts/foo.js',
-                'assets/scripts/bar.js'
-              ],
-              styles: 'assets/styles/**/*.css'
-            },
-            vendor: {
-              scripts: 'assets/vendor/bootstrap/dist/js/bootstrap.min.js'
-            }
+            'main.js': [
+              'assets/scripts/foo.js',
+              'assets/scripts/bar.js'
+            ],
+            'main.css': 'assets/styles/**/*.css',
+            'vendor.js': [
+              'assets/vendor/bootstrap/dist/js/bootstrap.min.js'
+            ]
           })
         ])
       });
-      var config = {
-        output: 'output',
-        debug: false
-      }
       // Create a plugin stream
-      var myAttire = attire(config);
+      var myAttire = attire({
+        output: 'test/output',
+        debug: true
+      });
       // write the fake file to it
       myAttire.write(fakeFile);
       // wait for the file to come back out
@@ -45,7 +43,8 @@ describe('gulp-attire', function() {
           // check the contents
           var data = JSON.parse(data.toString());
           expect(data).to.have.property('main.css');
-          expect(data).to.have.property('vendor.css');
+          expect(data).to.have.property('vendor.js');
+          expect(data['main.css']).to.include('test/output');
           done();
         }));
       });
