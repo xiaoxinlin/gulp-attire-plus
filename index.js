@@ -127,7 +127,7 @@ function gulpAttire(config={}) {
       // catch errors from the streamer and emit a gulp plugin error
       streamer.on('error', this.emit.bind(this, 'error'));
       var filePath = path.parse(file.path);
-      file.path = path.resolve(filePath.dir, 'attire.assets' + filePath.ext);
+      file.path = path.resolve(filePath.dir, 'attire.manifest' + filePath.ext);
       // start the transformation
       file.contents = file.contents.pipe(streamer);
     }
