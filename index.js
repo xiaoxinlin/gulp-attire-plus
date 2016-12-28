@@ -68,21 +68,12 @@ function createOutput(assets, cwd) {
   });
 }
 
-function streamerParser(file, config) {
+function streamerParser(file, assetDir, config) {
   var stream = through({objectMode:true}, function(chunk, enc, callback){
     var self   = this;
     var string = chunk.toString()
     var tree   = JSON.parse(string);
     var hash   = encrypt(TIMESTAMP).substring(0,8);
-
-    var assetDir;
-
-    if (file.base !== file.cwd) {
-      assetDir = path.resolve(file.cwd, file.base);
-    } else {
-      assetDir = path.resolve(file.cwd)
-    }
-
     var parsed = {};
 
     async.forEachOf(tree, function(files, assetFileName, cb){
@@ -125,8 +116,14 @@ function gulpAttire(config={}) {
     }
 
     if (file.isStream()) {
+      var assetDir;
+      if (file.base !== file.cwd) {
+        assetDir = path.resolve(file.cwd, file.base);
+      } else {
+        assetDir = path.resolve(file.cwd)
+      }
       // define the streamer that will transform the content
-      var streamer = streamerParser(file, config);
+      var streamer = streamerParser(file, assetDir, config);
       // catch errors from the streamer and emit a gulp plugin error
       streamer.on('error', this.emit.bind(this, 'error'));
       var filePath = path.parse(file.path);
