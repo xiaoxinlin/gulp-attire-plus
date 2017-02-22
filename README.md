@@ -1,6 +1,6 @@
 # [INACTIVE] gulp-attire
 
-**Important notice: This library is deprecated and not actively developed anymore.
+**Important notice: This library is deprecated and not actively developed anymore.**
 
 Attire asset pre-compiler task build for gulp.
 
