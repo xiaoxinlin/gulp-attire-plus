@@ -16,7 +16,7 @@ Date.prototype.withoutTime = function () {
 var PluginError = gutil.PluginError;
 
 // consts
-const PLUGIN_NAME = 'gulp-attire';
+const PLUGIN_NAME = 'gulp-attire-plus';
 const ALGORITHM = 'aes128';
 const HASH = 'd6F3Efeq';
 const TIMESTAMP = new Date().getTime().toString();
@@ -71,7 +71,7 @@ function createOutput(assets, cwd) {
 function streamerParser(file, assetDir, config) {
   var stream = through({objectMode:true}, function(chunk, enc, callback){
     var self   = this;
-    var string = chunk.toString()
+    var string = chunk.toString();
     var tree   = JSON.parse(string);
     var hash   = encrypt(TIMESTAMP).substring(0,8);
     var parsed = {};
@@ -79,13 +79,18 @@ function streamerParser(file, assetDir, config) {
     async.forEachOf(tree, function(files, assetFileName, cb){
       createOutput(files, assetDir).then(function(data){
         var assetFile = path.parse(assetFileName);
-        var outputName = assetFile.name + '-' + hash + assetFile.ext;
-        var outputDir = (config.output)? config.output : 'public';
+        var sep = (config.sep)? config.sep : '-';
+
+        if(config.hex && config.hex.trim().toLowerCase() === 'content'){
+        	hash = encrypt(data).substring(0,8);
+		}
+        var outputName = assetFile.name + sep + hash + assetFile.ext;
+        var outputDir = (config.dest)? config.dest : 'public';
         parsed[assetFileName] = path.normalize(outputDir + '/' + assetFile.ext.replace('.', '') + '/' + outputName);
-        if (! config.debug) {
+        if (config.output) {
           fsPath.writeFile(parsed[assetFileName], data, 'utf8', function(err) {
             if (err) {
-              gutil.log(err)
+              gutil.log(err);
               self.emit('error', new PluginError(PLUGIN_NAME, err));
             }
             cb();

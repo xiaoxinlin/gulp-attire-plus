@@ -1,16 +1,14 @@
-# [INACTIVE] gulp-attire
+# gulp-attire-plus
 
-**Important notice: This library is deprecated and not actively developed anymore.**
+gulp的资源预编译插件，可以对资源进行合并，添加文件hash
 
-Attire asset pre-compiler task build for gulp.
-
-## Install
+## 安装
 
 ```
-$ npm install --save-dev gulp-attire
+$ npm install --save-dev gulp-attire-plus
 ```
 
-## Usage
+## 用法
 
 Manifest:
 
@@ -28,11 +26,11 @@ Manifest:
 }
 ```
 
-Gulp task:
+Gulp 任务:
 
 ```js
 var gulp = require('gulp');
-var attire = require('gulp-attire');
+var attire = require('gulp-attire-plus');
 
 gulp.task('attire',function(){
   gulp.src('theme/foo/config.json', { buffer: false })
@@ -41,7 +39,7 @@ gulp.task('attire',function(){
 });
 ```
 
-Output:
+输出:
 
 ```json
 {
@@ -50,3 +48,36 @@ Output:
   "main.css": "public/css/main-ba96a3de.css"
 }
 ```
+
+## API
+
+### attire(options)
+
+#### dest
+类型：`String`
+
+指定资源文件生成目录，默认值为public，该属性在`output`为`true`时有效
+
+#### output
+类型：`Boolean`
+
+设置是否输出资源文件，默认值为true
+
+#### hex
+类型：`String`
+
+设置文件版本号中hash编码的内容：默认值为`time`
+
+*可选选项**
+
+`time` -- 以当前时间戳进行hash编码
+
+`content` -- 以文件内容进行hash编码
+
+#### sep
+类型：`String`
+
+设置文件名与文件版本号之间的分隔符，默认为`-`
+
+
+

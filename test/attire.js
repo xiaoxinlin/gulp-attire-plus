@@ -29,8 +29,8 @@ describe('gulp-attire', function() {
       });
       // Create a plugin stream
       var myAttire = attire({
-        output: 'test/output',
-        debug: true
+        dest: 'test/output',
+        output: false
       });
       // write the fake file to it
       myAttire.write(fakeFile);
